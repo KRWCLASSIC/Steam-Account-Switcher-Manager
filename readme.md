@@ -13,7 +13,7 @@ SASM is a powerful tool designed to enhance the management of your Steam account
 
 ## Installation
 
-1. Download `main.pyw` and `requirements.txt` files.
+1. Download `sasm.pyw` and `requirements.txt` files.
 2. Install the required packages by running:
 
    ```cmd
