@@ -49,7 +49,7 @@ SASM is a powerful tool designed to enhance the management of your Steam account
 
 To Rossen Georgiev for developing the "vdf" package.
 
-To Jassiey Sahana for backup icon over at [iconscout](https://iconscout.com/free-icon/data-backup-3351569_2797152)
+To Jessiey Sahana for backup icon over at [iconscout](https://iconscout.com/free-icon/data-backup-3351569_2797152)
 
 ## Support
 
