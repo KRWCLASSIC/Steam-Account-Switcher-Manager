@@ -20,7 +20,7 @@ SASM is a powerful tool designed to enhance the management of your Steam account
    pip install -r requirements.txt
    ```
 
-3. Run `main.pyw` file
+3. Run `sasm.pyw` file
 
 > You can also build this project with Nuitka or PyInstaller if you prefer binaries.
 
