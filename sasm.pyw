@@ -13,7 +13,7 @@ import os
 import winreg
 
 # Application version
-VERSION = "1.1.1"
+VERSION = "1.1.2"
 
 # Enable verbose logging if -v or --verbose flag is present
 VERBOSE = "-v" in sys.argv or "--verbose" in sys.argv
@@ -119,31 +119,48 @@ class FloatingActionButton(QPushButton):
         # Increase icon size by 140% (24 * 1.4 = 33.6, rounded to 34)
         self.setIconSize(QSize(34, 34))  # Increased icon size
         
-        # Set the icon using the new SVG with white color
+        # Get system colors
+        palette = self.palette()
+        is_dark = palette.color(palette.ColorRole.Window).lightness() < 128
+        
+        # Set the icon with inverted colors in dark mode
+        icon_color = "#FFFFFF" if is_dark else "#000000"  # White in dark mode, black in light mode
         self.setIcon(svg_to_icon('''
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" id="data-backup">
-                <path fill="#FFFFFF" d="M17.58 32.7H10a.73.73 0 0 1-.69-.7v-6a.73.73 0 0 1 .73-.73h10.3a1 1 0 0 0 1-1 1 1 0 0 0-1-1H10a.73.73 0 0 1-.73-.73V16.6a.73.73 0 0 1 .73-.73h21.67a.73.73 0 0 1 .73.73v3a1 1 0 0 0 2 0v-3a2.73 2.73 0 0 0-.64-1.73 2.68 2.68 0 0 0 .64-1.72v-6a2.72 2.72 0 0 0-2.72-2.72H10a2.72 2.72 0 0 0-2.69 2.75v6a2.67 2.67 0 0 0 .63 1.72 2.72 2.72 0 0 0-.63 1.73v5.95a2.65 2.65 0 0 0 .69 1.7A2.7 2.7 0 0 0 7.31 26v6A2.73 2.73 0 0 0 10 34.7h7.54a1 1 0 0 0 0-2ZM9.31 7.18a.72.72 0 0 1 .69-.72h21.68a.72.72 0 0 1 .72.72v6a.72.72 0 0 1-.72.72H10a.72.72 0 0 1-.72-.72Z"></path>
-                <circle fill="#FFFFFF" cx="12.18" cy="10.33" r="1.5"></circle>
-                <circle fill="#FFFFFF" cx="12.18" cy="19.52" r="1.5"></circle>
-                <circle fill="#FFFFFF" cx="12.18" cy="28.68" r="1.5"></circle>
-                <path fill="#FFFFFF" d="M29.1 21.19a8 8 0 0 0-8 8 9.07 9.07 0 0 0 .06.91l-1.48-1.4a1 1 0 0 0-1.41 0 1 1 0 0 0 0 1.42l3.27 3.11a1 1 0 0 0 .69.27 1 1 0 0 0 .71-.29l3.12-3.11a1 1 0 0 0 0-1.42 1 1 0 0 0-1.41 0l-1.47 1.52a6.64 6.64 0 0 1-.09-1 6 6 0 1 1 6 6 6.21 6.21 0 0 1-1.81-.28 1 1 0 1 0-.6 1.9 7.88 7.88 0 0 0 2.41.38 8 8 0 1 0 0-16Z"></path>
+                <path fill="currentColor" d="M17.58 32.7H10a.73.73 0 0 1-.69-.7v-6a.73.73 0 0 1 .73-.73h10.3a1 1 0 0 0 1-1 1 1 0 0 0-1-1H10a.73.73 0 0 1-.73-.73V16.6a.73.73 0 0 1 .73-.73h21.67a.73.73 0 0 1 .73.73v3a1 1 0 0 0 2 0v-3a2.73 2.73 0 0 0-.64-1.73 2.68 2.68 0 0 0 .64-1.72v-6a2.72 2.72 0 0 0-2.72-2.72H10a2.72 2.72 0 0 0-2.69 2.75v6a2.67 2.67 0 0 0 .63 1.72 2.72 2.72 0 0 0-.63 1.73v5.95a2.65 2.65 0 0 0 .69 1.7A2.7 2.7 0 0 0 7.31 26v6A2.73 2.73 0 0 0 10 34.7h7.54a1 1 0 0 0 0-2ZM9.31 7.18a.72.72 0 0 1 .69-.72h21.68a.72.72 0 0 1 .72.72v6a.72.72 0 0 1-.72.72H10a.72.72 0 0 1-.72-.72Z"></path>
+                <circle fill="currentColor" cx="12.18" cy="10.33" r="1.5"></circle>
+                <circle fill="currentColor" cx="12.18" cy="19.52" r="1.5"></circle>
+                <circle fill="currentColor" cx="12.18" cy="28.68" r="1.5"></circle>
+                <path fill="currentColor" d="M29.1 21.19a8 8 0 0 0-8 8 9.07 9.07 0 0 0 .06.91l-1.48-1.4a1 1 0 0 0-1.41 0 1 1 0 0 0 0 1.42l3.27 3.11a1 1 0 0 0 .69.27 1 1 0 0 0 .71-.29l3.12-3.11a1 1 0 0 0 0-1.42 1 1 0 0 0-1.41 0l-1.47 1.52a6.64 6.64 0 0 1-.09-1 6 6 0 1 1 6 6 6.21 6.21 0 0 1-1.81-.28 1 1 0 1 0-.6 1.9 7.88 7.88 0 0 0 2.41.38 8 8 0 1 0 0-16Z"></path>
             </svg>
-        ''', 34, "#FFFFFF"))  # Increased size to 34 and set color to white
+        ''', 34, icon_color))  # Set icon color based on theme
         
-        # Style the button to be square with a dark theme
-        self.setStyleSheet("""
-            QPushButton {
-                background-color: #424242;  /* Dark background */
-                border-radius: 8px;  /* Rounded corners */
-                color: white;
+        # Use light gray for light mode, system colors for dark mode
+        if is_dark:
+            bg_color = palette.color(palette.ColorRole.Button)
+            hover_color = bg_color.lighter(120)  # Lighter in dark mode
+            pressed_color = bg_color.lighter(150)  # Even lighter on press
+        else:
+            bg_color = palette.color(palette.ColorRole.Base)  # Light gray background
+            hover_color = bg_color.darker(120)  # Slightly darker on hover
+            pressed_color = bg_color.darker(150)  # Even darker on press
+        
+        text_color = palette.color(palette.ColorRole.ButtonText)
+        
+        # Style the button to match system theme
+        self.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {bg_color.name()};
+                border-radius: 8px;
+                color: {text_color.name()};
                 border: none;
-            }
-            QPushButton:hover {
-                background-color: #616161;  /* Lighter on hover */
-            }
-            QPushButton:pressed {
-                background-color: #757575;  /* Even lighter on press */
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {hover_color.name()};
+            }}
+            QPushButton:pressed {{
+                background-color: {pressed_color.name()};
+            }}
         """)
         
         # Set the cursor to a pointing hand
@@ -1230,7 +1247,6 @@ class SteamAccountManager(QMainWindow):
 
 # Main entry point
 if __name__ == '__main__':
-    sys.argv += ['-platform', 'windows:darkmode=2'] # Force Windows Dark Mode
     
     app = QApplication(sys.argv)
     window = SteamAccountManager()
