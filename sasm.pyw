@@ -1,14 +1,14 @@
-import sys
-import os
-import json
-import time
-import vdf
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QTableWidget,
                              QTableWidgetItem, QPushButton, QCheckBox,
                              QRadioButton, QHeaderView, QMessageBox,
                              QButtonGroup, QMenu)
 from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt
+import json
+import time
+import vdf
+import sys
+import os
 
 # Application version
 VERSION = "1.0"
