@@ -10,7 +10,6 @@ import time
 import vdf
 import sys
 import os
-import winreg
 
 # Application version
 VERSION = "1.2"
@@ -18,54 +17,66 @@ VERSION = "1.2"
 # Enable verbose logging if -v or --verbose flag is present
 VERBOSE = "-v" in sys.argv or "--verbose" in sys.argv
 
-# Define paths for application data and Steam configuration
+# Constants for file paths and keys
 APPDATA_PATH = os.path.join(os.getenv('APPDATA'), "KRWCLASSIC", "steamaccountswitchermanager")
-os.makedirs(APPDATA_PATH, exist_ok=True)
 DISABLED_ACCOUNTS_FILE = os.path.join(APPDATA_PATH, "disabled_accounts.json")
-SETTINGS_FILE = os.path.join(APPDATA_PATH, "settings.json")  # New settings file
+SETTINGS_FILE = os.path.join(APPDATA_PATH, "settings.json")
 BACKUP_PATH = os.path.join(APPDATA_PATH, "backups")
-os.makedirs(BACKUP_PATH, exist_ok=True)  # Create backups directory
+DEFAULT_VDF_PATH = os.path.join(os.getenv('ProgramFiles(x86)'), "Steam", "config", "loginusers.vdf")
 
 # Initialize VDF_PATH
-DEFAULT_VDF_PATH = os.getenv('ProgramFiles(x86)') + "\\Steam\\config\\loginusers.vdf"
 VDF_PATH = DEFAULT_VDF_PATH if os.path.exists(DEFAULT_VDF_PATH) else None
+
+# Ensure directories exist
+os.makedirs(APPDATA_PATH, exist_ok=True)
+os.makedirs(BACKUP_PATH, exist_ok=True)
 
 # Debug print function that only prints when verbose mode is enabled
 def debug_print(*args, **kwargs):
     if VERBOSE:
         print("[DEBUG]", *args, **kwargs)
 
-# Function to save settings to JSON file
-def save_settings(settings):
-    with open(SETTINGS_FILE, 'w') as f:
-        json.dump(settings, f, indent=4)
+# Function to load JSON data from a file
+def load_json_file(filepath, default=None):
+    if not os.path.exists(filepath):
+        debug_print(f"{filepath} not found, returning default settings.")
+        return default
+    try:
+        with open(filepath, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        debug_print(f"Error loading {filepath}: {str(e)}")
+        return default
 
-# Function to load settings from JSON file
+# Function to save JSON data to a file
+def save_json_file(filepath, data):
+    with open(filepath, 'w') as f:
+        json.dump(data, f, indent=4)
+
+# Load settings with defaults
 def load_settings():
     default_settings = {
         "auto_backup": True,
-        "vdf_path": None  # Add a key for the VDF path
+        "vdf_path": None
     }
-    
-    # If the settings file doesn't exist, create it with default settings
-    if not os.path.exists(SETTINGS_FILE):
-        debug_print("Settings file not found, creating with default settings")
-        save_settings(default_settings)
-        return default_settings
-    
-    try:
-        with open(SETTINGS_FILE, 'r') as f:
-            user_settings = json.load(f)
-            # Merge with default settings
-            return {**default_settings, **user_settings}
-    except Exception as e:
-        debug_print(f"Error loading settings: {str(e)}")
-        return default_settings
+    return load_json_file(SETTINGS_FILE, default_settings)
 
-# Load settings to check for a saved path
-settings = load_settings()
-if settings.get("vdf_path"):
-    VDF_PATH = settings["vdf_path"]  # Load path from settings if available
+# Save settings
+def save_settings(settings):
+    save_json_file(SETTINGS_FILE, settings)
+
+# Load disabled accounts
+def load_disabled_accounts():
+    data = load_json_file(DISABLED_ACCOUNTS_FILE, {})
+    if isinstance(data, list):
+        debug_print("Converting disabled accounts from list to dictionary format")
+        return {steam_id: {"AccountName": f"Account_{steam_id[-4:]}", "PersonaName": f"User_{steam_id[-4:]}"}
+                for steam_id in data}
+    return data
+
+# Save disabled accounts
+def save_disabled_accounts(accounts):
+    save_json_file(DISABLED_ACCOUNTS_FILE, accounts)
 
 # Function to create an icon from SVG string
 def svg_to_icon(svg_string, size=24, color=None):
@@ -147,63 +158,6 @@ class FloatingActionButton(QPushButton):
         
         # Set the cursor to a pointing hand
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-
-# Load disabled accounts from JSON file
-def load_disabled_accounts():
-    if os.path.exists(DISABLED_ACCOUNTS_FILE):
-        try:
-            with open(DISABLED_ACCOUNTS_FILE, 'r') as f:
-                data = json.load(f)
-                # Convert list to dict if needed (for backward compatibility)
-                if isinstance(data, list):
-                    debug_print("Converting disabled accounts from list to dictionary format")
-                    # Try to load the VDF file to get actual account data for disabled accounts
-                    try:
-                        vdf_data = parse_vdf(VDF_PATH)
-                        new_data = {}
-                        for steam_id in data:
-                            # If the account exists in the VDF file, use that data
-                            if steam_id in vdf_data:
-                                new_data[steam_id] = vdf_data[steam_id]
-                            else:
-                                # Otherwise use placeholder data
-                                new_data[steam_id] = {
-                                    "AccountName": f"Account_{steam_id[-4:]}",
-                                    "PersonaName": f"User_{steam_id[-4:]}",
-                                    "RememberPassword": "1",
-                                    "WantsOfflineMode": "0",
-                                    "SkipOfflineModeWarning": "0",
-                                    "AllowAutoLogin": "1",
-                                    "MostRecent": "0",
-                                    "Timestamp": "0"
-                                }
-                        return new_data
-                    except Exception as e:
-                        debug_print(f"Error loading VDF data for disabled accounts: {str(e)}")
-                        # Fallback to basic conversion
-                        new_data = {}
-                        for steam_id in data:
-                            new_data[steam_id] = {
-                                "AccountName": f"Account_{steam_id[-4:]}",
-                                "PersonaName": f"User_{steam_id[-4:]}",
-                                "RememberPassword": "1",
-                                "WantsOfflineMode": "0",
-                                "SkipOfflineModeWarning": "0",
-                                "AllowAutoLogin": "1",
-                                "MostRecent": "0",
-                                "Timestamp": "0"
-                            }
-                        return new_data
-                return data
-        except Exception as e:
-            debug_print(f"Error loading disabled accounts: {str(e)}")
-            return {}
-    return {}  # Return empty dict if no disabled accounts file exists
-
-# Save disabled accounts to JSON file
-def save_disabled_accounts(accounts):
-    with open(DISABLED_ACCOUNTS_FILE, 'w') as f:
-        json.dump(accounts, f, indent=4)
 
 # Parse Steam's VDF configuration file
 def parse_vdf(filepath):
@@ -307,19 +261,12 @@ class PathSelectionWindow(QWidget):
 class SteamAccountManager(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.settings = load_settings()  # Load settings
-        self.auto_backup = self.settings.get("auto_backup", True)  # Get auto_backup setting
-        self.radio_button_group = QButtonGroup(self)  # Create a button group for radio buttons
-        self.radio_button_group.setExclusive(True)    # Ensure only one can be selected
-        
-        # Initialize the UI
-        self.initUI()  # Ensure UI is initialized first
-        
-        # Check if VDF file exists
-        if not VDF_PATH or not os.path.exists(VDF_PATH):
-            self.show_path_selection()
-        else:
-            self.load_data()
+        self.settings = load_settings()
+        self.auto_backup = self.settings.get("auto_backup", True)
+        self.radio_button_group = QButtonGroup(self)
+        self.radio_button_group.setExclusive(True)
+        self.initUI()
+        self.load_data()
     
     # Initialize the user interface
     def initUI(self):
