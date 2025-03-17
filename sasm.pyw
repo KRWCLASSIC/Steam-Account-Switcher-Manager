@@ -10,9 +10,10 @@ import time
 import vdf
 import sys
 import os
+import winreg
 
 # Application version
-VERSION = "1.1"
+VERSION = "1.1.1"
 
 # Enable verbose logging if -v or --verbose flag is present
 VERBOSE = "-v" in sys.argv or "--verbose" in sys.argv
@@ -29,7 +30,60 @@ DISABLED_ACCOUNTS_FILE = os.path.join(APPDATA_PATH, "disabled_accounts.json")
 SETTINGS_FILE = os.path.join(APPDATA_PATH, "settings.json")  # New settings file
 BACKUP_PATH = os.path.join(APPDATA_PATH, "backups")
 os.makedirs(BACKUP_PATH, exist_ok=True)  # Create backups directory
-VDF_PATH = os.path.join(os.getenv('ProgramFiles(x86)'), "Steam", "config", "loginusers.vdf")
+
+def find_steam_path():
+    """Try to locate Steam installation path by finding the Steam binary"""
+    try:
+        # Try to find Steam path from registry
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam") as key:
+                steam_path = winreg.QueryValueEx(key, "SteamPath")[0]
+                debug_print(f"Found Steam path in registry: {steam_path}")
+                vdf_path = os.path.join(steam_path, "config", "loginusers.vdf")
+                if os.path.exists(vdf_path):
+                    return vdf_path
+        except FileNotFoundError:
+            pass
+        
+        # Try to find Steam binary through Steam protocol handler
+        try:
+            with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, r"steam\Shell\Open\Command") as key:
+                command = winreg.QueryValueEx(key, "")[0]
+                # Extract path from command (usually something like "C:\Program Files (x86)\Steam\steam.exe" "%1")
+                steam_exe_path = command.split('"')[1]
+                steam_path = os.path.dirname(steam_exe_path)
+                debug_print(f"Found Steam path through protocol handler: {steam_path}")
+                vdf_path = os.path.join(steam_path, "config", "loginusers.vdf")
+                if os.path.exists(vdf_path):
+                    return vdf_path
+        except FileNotFoundError:
+            pass
+        
+        # Try to find Steam through Windows App Paths
+        try:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\steam.exe") as key:
+                steam_exe_path = winreg.QueryValueEx(key, "")[0]
+                steam_path = os.path.dirname(steam_exe_path)
+                debug_print(f"Found Steam path through App Paths: {steam_path}")
+                vdf_path = os.path.join(steam_path, "config", "loginusers.vdf")
+                if os.path.exists(vdf_path):
+                    return vdf_path
+        except FileNotFoundError:
+            pass
+        
+        # If all else fails, try the default location
+        default_path = os.path.join(os.getenv('ProgramFiles(x86)'), "Steam", "config", "loginusers.vdf")
+        if os.path.exists(default_path):
+            return default_path
+        
+        return None
+        
+    except Exception as e:
+        debug_print(f"Error finding Steam path: {str(e)}")
+        return None
+
+# Update VDF_PATH to use the find_steam_path function
+VDF_PATH = find_steam_path()
 
 # Function to create an icon from SVG string
 def svg_to_icon(svg_string, size=24, color=None):
@@ -154,6 +208,9 @@ def save_disabled_accounts(accounts):
 
 # Parse Steam's VDF configuration file
 def parse_vdf(filepath):
+    if not filepath or not os.path.exists(filepath):
+        raise FileNotFoundError("Steam installation not found. Please make sure Steam is installed.")
+    
     debug_print(f"Opening VDF file: {filepath}")
     with open(filepath, 'r', encoding='utf-8') as f:
         data = vdf.load(f)
@@ -739,8 +796,13 @@ class SteamAccountManager(QMainWindow):
     
     # Load account data from VDF and JSON files
     def load_data(self):
-        debug_print("Loading VDF data...")
         try:
+            if not VDF_PATH:
+                QMessageBox.critical(self, "Error", 
+                    "Steam installation not found. Please make sure Steam is installed.")
+                return
+            
+            debug_print("Loading VDF data...")
             # First load the VDF file (enabled accounts)
             self.data = parse_vdf(VDF_PATH)
             debug_print(f"Successfully parsed VDF data, found {len(self.data)} accounts")
@@ -843,6 +905,9 @@ class SteamAccountManager(QMainWindow):
             
             debug_print("Finished loading data into table")
             
+        except FileNotFoundError as e:
+            QMessageBox.critical(self, "Error", 
+                f"Steam installation not found. Please make sure Steam is installed.\n\nDetails: {str(e)}")
         except Exception as e:
             debug_print(f"Error loading data: {str(e)}")
             QMessageBox.critical(self, "Error", f"Failed to load data: {str(e)}")
@@ -1165,6 +1230,8 @@ class SteamAccountManager(QMainWindow):
 
 # Main entry point
 if __name__ == '__main__':
+    sys.argv += ['-platform', 'windows:darkmode=2'] # Force Windows Dark Mode
+    
     app = QApplication(sys.argv)
     window = SteamAccountManager()
     window.show()

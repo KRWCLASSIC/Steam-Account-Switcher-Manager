@@ -1,4 +1,4 @@
-# Steam Account Switcher Manager `1.1`
+# Steam Account Switcher Manager `1.1.1`
 
 ![Static Badge](https://img.shields.io/badge/OS-Windows_Only-blue)
 
