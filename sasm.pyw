@@ -1,9 +1,10 @@
-from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QTableWidget,
+from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTableWidget,
                              QTableWidgetItem, QPushButton, QCheckBox,
                              QRadioButton, QHeaderView, QMessageBox,
-                             QButtonGroup, QMenu)
-from PySide6.QtGui import QAction
-from PySide6.QtCore import Qt
+                             QButtonGroup, QMenu, QFrame)
+from PySide6.QtGui import QAction, QPainter, QPixmap, QIcon
+from PySide6.QtCore import Qt, QSize, QPoint, QTimer
+from PySide6.QtSvg import QSvgRenderer
 import json
 import time
 import vdf
@@ -11,7 +12,7 @@ import sys
 import os
 
 # Application version
-VERSION = "1.0"
+VERSION = "1.1"
 
 # Enable verbose logging if -v or --verbose flag is present
 VERBOSE = "-v" in sys.argv or "--verbose" in sys.argv
@@ -25,7 +26,73 @@ def debug_print(*args, **kwargs):
 APPDATA_PATH = os.path.join(os.getenv('APPDATA'), "KRWCLASSIC", "steamaccountswitchermanager")
 os.makedirs(APPDATA_PATH, exist_ok=True)
 DISABLED_ACCOUNTS_FILE = os.path.join(APPDATA_PATH, "disabled_accounts.json")
+BACKUP_PATH = os.path.join(APPDATA_PATH, "backups")
+os.makedirs(BACKUP_PATH, exist_ok=True)  # Create backups directory
 VDF_PATH = os.path.join(os.getenv('ProgramFiles(x86)'), "Steam", "config", "loginusers.vdf")
+
+# Function to create an icon from SVG string
+def svg_to_icon(svg_string, size=24, color=None):
+    """Convert SVG string to QIcon with optional color override"""
+    # If color is specified, try to replace the fill color in the SVG
+    if color:
+        svg_string = svg_string.replace('fill="currentColor"', f'fill="{color}"')
+    
+    # Convert the SVG string to a byte array
+    svg_bytes = svg_string.encode('utf-8')
+    
+    # Create an SVG renderer
+    renderer = QSvgRenderer(svg_bytes)
+    
+    # Create a pixmap to render to
+    pixmap = QPixmap(size, size)
+    pixmap.fill(Qt.GlobalColor.transparent)  # Make the background transparent
+    
+    # Create a painter to paint onto the pixmap
+    painter = QPainter(pixmap)
+    renderer.render(painter)
+    painter.end()
+    
+    # Create and return an icon from the pixmap
+    return QIcon(pixmap)
+
+# Custom floating action button class
+class FloatingActionButton(QPushButton):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(56, 56)  # Standard FAB size
+        
+        # Increase icon size by 140% (24 * 1.4 = 33.6, rounded to 34)
+        self.setIconSize(QSize(34, 34))  # Increased icon size
+        
+        # Set the icon using the new SVG with white color
+        self.setIcon(svg_to_icon('''
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" id="data-backup">
+                <path fill="#FFFFFF" d="M17.58 32.7H10a.73.73 0 0 1-.69-.7v-6a.73.73 0 0 1 .73-.73h10.3a1 1 0 0 0 1-1 1 1 0 0 0-1-1H10a.73.73 0 0 1-.73-.73V16.6a.73.73 0 0 1 .73-.73h21.67a.73.73 0 0 1 .73.73v3a1 1 0 0 0 2 0v-3a2.73 2.73 0 0 0-.64-1.73 2.68 2.68 0 0 0 .64-1.72v-6a2.72 2.72 0 0 0-2.72-2.72H10a2.72 2.72 0 0 0-2.69 2.75v6a2.67 2.67 0 0 0 .63 1.72 2.72 2.72 0 0 0-.63 1.73v5.95a2.65 2.65 0 0 0 .69 1.7A2.7 2.7 0 0 0 7.31 26v6A2.73 2.73 0 0 0 10 34.7h7.54a1 1 0 0 0 0-2ZM9.31 7.18a.72.72 0 0 1 .69-.72h21.68a.72.72 0 0 1 .72.72v6a.72.72 0 0 1-.72.72H10a.72.72 0 0 1-.72-.72Z"></path>
+                <circle fill="#FFFFFF" cx="12.18" cy="10.33" r="1.5"></circle>
+                <circle fill="#FFFFFF" cx="12.18" cy="19.52" r="1.5"></circle>
+                <circle fill="#FFFFFF" cx="12.18" cy="28.68" r="1.5"></circle>
+                <path fill="#FFFFFF" d="M29.1 21.19a8 8 0 0 0-8 8 9.07 9.07 0 0 0 .06.91l-1.48-1.4a1 1 0 0 0-1.41 0 1 1 0 0 0 0 1.42l3.27 3.11a1 1 0 0 0 .69.27 1 1 0 0 0 .71-.29l3.12-3.11a1 1 0 0 0 0-1.42 1 1 0 0 0-1.41 0l-1.47 1.52a6.64 6.64 0 0 1-.09-1 6 6 0 1 1 6 6 6.21 6.21 0 0 1-1.81-.28 1 1 0 1 0-.6 1.9 7.88 7.88 0 0 0 2.41.38 8 8 0 1 0 0-16Z"></path>
+            </svg>
+        ''', 34, "#FFFFFF"))  # Increased size to 34 and set color to white
+        
+        # Style the button to be square with a dark theme
+        self.setStyleSheet("""
+            QPushButton {
+                background-color: #424242;  /* Dark background */
+                border-radius: 8px;  /* Rounded corners */
+                color: white;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #616161;  /* Lighter on hover */
+            }
+            QPushButton:pressed {
+                background-color: #757575;  /* Even lighter on press */
+            }
+        """)
+        
+        # Set the cursor to a pointing hand
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
 
 # Load disabled accounts from JSON file
 def load_disabled_accounts():
@@ -99,20 +166,41 @@ def save_vdf(filepath, data):
         vdf.dump({'users': data}, f, pretty=True)
 
 # Main application class for Steam Account Manager
-class SteamAccountManager(QWidget):
+class SteamAccountManager(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.initUI()
+        self.auto_backup = True  # Enable auto-backup by default
         self.radio_button_group = QButtonGroup(self)  # Create a button group for radio buttons
         self.radio_button_group.setExclusive(True)    # Ensure only one can be selected
+        self.initUI()
         self.load_data()  # Load data automatically on startup
     
     # Initialize the user interface
     def initUI(self):
         self.setWindowTitle(f"Steam Account Switcher Manager v{VERSION}")
-        self.setGeometry(100, 100, 900, 500)
         
-        layout = QVBoxLayout()
+        # Set default window size
+        default_width = 915
+        default_height = 450
+        
+        # Set minimum window size (default size - 50px on both sides)
+        min_width = default_width - 50
+        min_height = default_height - 50
+        
+        # Set window size and minimum size
+        self.setGeometry(100, 100, default_width, default_height)
+        self.setMinimumSize(min_width, min_height)
+        
+        # Create central widget and main layout
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        main_layout = QVBoxLayout(central_widget)
+        
+        # Create a frame to hold the table and FAB
+        self.table_frame = QFrame(self)
+        self.table_frame.setObjectName("tableFrame")
+        table_layout = QVBoxLayout(self.table_frame)
+        table_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins to ensure FAB is properly positioned
         
         # Create table for displaying accounts
         self.table = QTableWidget()
@@ -141,7 +229,17 @@ class SteamAccountManager(QWidget):
         self.table.setColumnWidth(4, 70)    # Enabled column
         self.table.setColumnWidth(5, 200)   # Steam ID column
         
-        # Create button layout
+        # Add the table to the table layout
+        table_layout.addWidget(self.table)
+        
+        # Create floating action button
+        self.fab = FloatingActionButton(self.table_frame)  # Make the FAB a child of the table frame
+        self.fab.clicked.connect(self.show_fab_menu)
+        
+        # Add the table frame to the main layout
+        main_layout.addWidget(self.table_frame)
+        
+        # Create button layout for other buttons
         button_layout = QHBoxLayout()
         
         # Create and configure buttons
@@ -163,11 +261,90 @@ class SteamAccountManager(QWidget):
         button_layout.addWidget(self.move_up_button)
         button_layout.addWidget(self.move_down_button)
         
-        # Add widgets to main layout
-        layout.addWidget(self.table)
-        layout.addLayout(button_layout)
+        # Add button layout to main layout
+        main_layout.addLayout(button_layout)
+    
+    # Show the window and position the FAB after the layout is complete
+    def showEvent(self, event):
+        super().showEvent(event)
+        # Use a single-shot timer to position the FAB after the window is shown
+        QTimer.singleShot(0, self.position_fab)
+    
+    # Position the FAB in the bottom right corner of the table frame
+    def position_fab(self):
+        if self.table_frame and self.fab:
+            self.fab.move(
+                self.table_frame.width() - self.fab.width() - 16,  # 16px margin from the right
+                self.table_frame.height() - self.fab.height() - 16  # 16px margin from the bottom
+            )
+    
+    # Reposition the FAB when the window is resized
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.position_fab()
+    
+    # Show the menu when the FAB is clicked
+    def show_fab_menu(self):
+        menu = QMenu(self)
         
-        self.setLayout(layout)
+        # Add auto backup option with checkbox (no icon)
+        auto_backup_action = QAction("Auto Backup", self)
+        auto_backup_action.setCheckable(True)
+        auto_backup_action.setChecked(self.auto_backup)
+        auto_backup_action.triggered.connect(self.toggle_auto_backup)
+        menu.addAction(auto_backup_action)
+        
+        # Add manual backup option (no icon)
+        manual_backup_action = QAction("Create Manual Backup", self)
+        manual_backup_action.triggered.connect(self.create_manual_backup)
+        menu.addAction(manual_backup_action)
+        
+        # Position the menu above the FAB
+        pos = self.fab.mapToGlobal(QPoint(0, -menu.sizeHint().height()))
+        menu.exec(pos)
+    
+    # Toggle auto backup setting
+    def toggle_auto_backup(self, state):
+        self.auto_backup = state
+        debug_print(f"Auto backup {'enabled' if state else 'disabled'}")
+    
+    # Create a backup of the VDF file
+    def create_backup(self, manual=False):
+        try:
+            # Skip if auto backup is disabled and this is not a manual backup
+            if not self.auto_backup and not manual:
+                debug_print("Auto backup is disabled, skipping backup")
+                return None
+                
+            # Generate timestamp for the backup filename
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            backup_type = "manual" if manual else "auto"
+            backup_filename = f"loginusers_{backup_type}_{timestamp}.vdf"
+            backup_filepath = os.path.join(BACKUP_PATH, backup_filename)
+            
+            # Copy the VDF file to the backup location
+            import shutil
+            shutil.copy2(VDF_PATH, backup_filepath)
+            
+            debug_print(f"Created backup at {backup_filepath}")
+            return backup_filepath
+        except Exception as e:
+            debug_print(f"Error creating backup: {str(e)}")
+            if manual:
+                QMessageBox.warning(self, "Backup Error", f"Failed to create backup: {str(e)}")
+            return None
+    
+    # Create a manual backup and show confirmation
+    def create_manual_backup(self):
+        backup_path = self.create_backup(manual=True)
+        if backup_path:
+            # Create a simplified path for display
+            simplified_path = backup_path.replace(os.getenv('APPDATA'), "%APPDATA%")
+            QMessageBox.information(
+                self, 
+                "Backup Created", 
+                f"Manual backup created successfully at:\n{simplified_path}"
+            )
     
     # Move selected account up in the list
     def move_up(self):
@@ -746,6 +923,10 @@ class SteamAccountManager(QWidget):
     def save_data(self, show_message=True):
         try:
             debug_print("Saving changes...")
+            
+            # Create backup before saving
+            self.create_backup()
+            
             base_timestamp = int(time.time())
             
             # First update any edited Account Name or Persona Name values from the table

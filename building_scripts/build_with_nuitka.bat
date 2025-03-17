@@ -15,7 +15,7 @@ python -m nuitka ^
     --output-dir=building_scripts/nuitka ^
     --windows-company-name="KRW CLASSIC" ^
     --windows-product-name="SASM" ^
-    --windows-product-version="1.0" ^
+    --windows-product-version="1.1" ^
     sasm.pyw
 
 cd building_scripts/nuitka

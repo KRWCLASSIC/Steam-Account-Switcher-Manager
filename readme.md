@@ -1,4 +1,4 @@
-# Steam Account Switcher Manager `1.0`
+# Steam Account Switcher Manager `1.1`
 
 ![Static Badge](https://img.shields.io/badge/OS-Windows_Only-blue)
 
@@ -10,6 +10,7 @@ SASM is a powerful tool designed to enhance the management of your Steam account
 
 - **Account Management**: Easily reorder your Steam accounts to suit your preferences.
 - **Account Disabling**: Disable accounts for privacy or organization, with hidden accounts stored in `%appdata%/KRWCLASSIC/steamaccountswitchermanager`.
+- **Account Backup**:
 
 ## Installation
 
@@ -27,8 +28,8 @@ SASM is a powerful tool designed to enhance the management of your Steam account
 ## Usage
 
 - Launch the application to view your accounts.
-- Use the interface to reorder or hide accounts as needed.
-- Access the settings to manage account via right click.
+- Use the interface to reorder or disable accounts as needed.
+- Access the right click menu to manage account additional settings.
 
 ## Fun Additions
 
@@ -36,7 +37,6 @@ SASM is a powerful tool designed to enhance the management of your Steam account
 
 ## TODO
 
-- Backup system
 - Auto editing so your changes are permanent (might break adding new accounts - to remember)
 
 ## Thanks
