@@ -43,6 +43,7 @@ SASM is a powerful tool designed to enhance the management of your Steam account
 
 ## TODO
 
+- Add custom installation path for steam in settings
 - Auto editing so your changes are permanent (might break adding new accounts - to remember)
 
 ## Thanks
