@@ -26,6 +26,7 @@ def debug_print(*args, **kwargs):
 APPDATA_PATH = os.path.join(os.getenv('APPDATA'), "KRWCLASSIC", "steamaccountswitchermanager")
 os.makedirs(APPDATA_PATH, exist_ok=True)
 DISABLED_ACCOUNTS_FILE = os.path.join(APPDATA_PATH, "disabled_accounts.json")
+SETTINGS_FILE = os.path.join(APPDATA_PATH, "settings.json")  # New settings file
 BACKUP_PATH = os.path.join(APPDATA_PATH, "backups")
 os.makedirs(BACKUP_PATH, exist_ok=True)  # Create backups directory
 VDF_PATH = os.path.join(os.getenv('ProgramFiles(x86)'), "Steam", "config", "loginusers.vdf")
@@ -165,11 +166,33 @@ def save_vdf(filepath, data):
     with open(filepath, 'w', encoding='utf-8') as f:
         vdf.dump({'users': data}, f, pretty=True)
 
+# Load settings from JSON file
+def load_settings():
+    default_settings = {
+        "auto_backup": True
+    }
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, 'r') as f:
+                user_settings = json.load(f)
+                # Merge with default settings
+                return {**default_settings, **user_settings}
+        except Exception as e:
+            debug_print(f"Error loading settings: {str(e)}")
+            return default_settings
+    return default_settings
+
+# Save settings to JSON file
+def save_settings(settings):
+    with open(SETTINGS_FILE, 'w') as f:
+        json.dump(settings, f, indent=4)
+
 # Main application class for Steam Account Manager
 class SteamAccountManager(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.auto_backup = True  # Enable auto-backup by default
+        self.settings = load_settings()  # Load settings
+        self.auto_backup = self.settings.get("auto_backup", True)  # Get auto_backup setting
         self.radio_button_group = QButtonGroup(self)  # Create a button group for radio buttons
         self.radio_button_group.setExclusive(True)    # Ensure only one can be selected
         self.initUI()
@@ -306,6 +329,8 @@ class SteamAccountManager(QMainWindow):
     # Toggle auto backup setting
     def toggle_auto_backup(self, state):
         self.auto_backup = state
+        self.settings["auto_backup"] = state
+        save_settings(self.settings)  # Save updated settings
         debug_print(f"Auto backup {'enabled' if state else 'disabled'}")
     
     # Create a backup of the VDF file
