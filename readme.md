@@ -12,12 +12,12 @@ SASM is a powerful tool designed to enhance the management of your Steam account
 - **Account Disabling**: Disable accounts for privacy or organization, with hidden accounts stored in `%appdata%/KRWCLASSIC/steamaccountswitchermanager`.
 - **Account Backup**: Automatically or manually create backups before making any changes.
 
-## Prerequisites
+## Prerequisites (Non-build)
 
 - Python 3.11.x (or newer)
 - Windows 10 or higher
 
-## Installation
+## Installation (Non-build)
 
 1. Download `sasm.pyw` and `requirements.txt` files.
 2. Install the required packages by running:
@@ -29,6 +29,7 @@ SASM is a powerful tool designed to enhance the management of your Steam account
 3. Run `sasm.pyw` file
 
 > You can also build this project with Nuitka or PyInstaller if you prefer binaries.
+> Precompiled builds are available in the [releases section](https://github.com/KRWCLASSIC/SteamAccountSwitcherManager/releases).
 
 ## Usage
 
