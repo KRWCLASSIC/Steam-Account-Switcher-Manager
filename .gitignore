@@ -1,2 +1,3 @@
+building_scripts/build_both.bat
 building_scripts/pyinstaller
 building_scripts/nuitka

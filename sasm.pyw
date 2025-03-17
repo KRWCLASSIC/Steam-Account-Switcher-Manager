@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTableWidget,
                              QTableWidgetItem, QPushButton, QCheckBox,
                              QRadioButton, QHeaderView, QMessageBox,
-                             QButtonGroup, QMenu, QFrame)
+                             QButtonGroup, QMenu, QFrame, QLabel, QLineEdit, QFileDialog)
 from PySide6.QtGui import QAction, QPainter, QPixmap, QIcon
 from PySide6.QtCore import Qt, QSize, QPoint, QTimer
 from PySide6.QtSvg import QSvgRenderer
@@ -13,15 +13,10 @@ import os
 import winreg
 
 # Application version
-VERSION = "1.1.2"
+VERSION = "1.2"
 
 # Enable verbose logging if -v or --verbose flag is present
 VERBOSE = "-v" in sys.argv or "--verbose" in sys.argv
-
-# Debug print function that only prints when verbose mode is enabled
-def debug_print(*args, **kwargs):
-    if VERBOSE:
-        print("[DEBUG]", *args, **kwargs)
 
 # Define paths for application data and Steam configuration
 APPDATA_PATH = os.path.join(os.getenv('APPDATA'), "KRWCLASSIC", "steamaccountswitchermanager")
@@ -31,59 +26,46 @@ SETTINGS_FILE = os.path.join(APPDATA_PATH, "settings.json")  # New settings file
 BACKUP_PATH = os.path.join(APPDATA_PATH, "backups")
 os.makedirs(BACKUP_PATH, exist_ok=True)  # Create backups directory
 
-def find_steam_path():
-    """Try to locate Steam installation path by finding the Steam binary"""
-    try:
-        # Try to find Steam path from registry
-        try:
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam") as key:
-                steam_path = winreg.QueryValueEx(key, "SteamPath")[0]
-                debug_print(f"Found Steam path in registry: {steam_path}")
-                vdf_path = os.path.join(steam_path, "config", "loginusers.vdf")
-                if os.path.exists(vdf_path):
-                    return vdf_path
-        except FileNotFoundError:
-            pass
-        
-        # Try to find Steam binary through Steam protocol handler
-        try:
-            with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, r"steam\Shell\Open\Command") as key:
-                command = winreg.QueryValueEx(key, "")[0]
-                # Extract path from command (usually something like "C:\Program Files (x86)\Steam\steam.exe" "%1")
-                steam_exe_path = command.split('"')[1]
-                steam_path = os.path.dirname(steam_exe_path)
-                debug_print(f"Found Steam path through protocol handler: {steam_path}")
-                vdf_path = os.path.join(steam_path, "config", "loginusers.vdf")
-                if os.path.exists(vdf_path):
-                    return vdf_path
-        except FileNotFoundError:
-            pass
-        
-        # Try to find Steam through Windows App Paths
-        try:
-            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\steam.exe") as key:
-                steam_exe_path = winreg.QueryValueEx(key, "")[0]
-                steam_path = os.path.dirname(steam_exe_path)
-                debug_print(f"Found Steam path through App Paths: {steam_path}")
-                vdf_path = os.path.join(steam_path, "config", "loginusers.vdf")
-                if os.path.exists(vdf_path):
-                    return vdf_path
-        except FileNotFoundError:
-            pass
-        
-        # If all else fails, try the default location
-        default_path = os.path.join(os.getenv('ProgramFiles(x86)'), "Steam", "config", "loginusers.vdf")
-        if os.path.exists(default_path):
-            return default_path
-        
-        return None
-        
-    except Exception as e:
-        debug_print(f"Error finding Steam path: {str(e)}")
-        return None
+# Initialize VDF_PATH
+DEFAULT_VDF_PATH = os.getenv('ProgramFiles(x86)') + "\\Steam\\config\\loginusers.vdf"
+VDF_PATH = DEFAULT_VDF_PATH if os.path.exists(DEFAULT_VDF_PATH) else None
 
-# Update VDF_PATH to use the find_steam_path function
-VDF_PATH = find_steam_path()
+# Debug print function that only prints when verbose mode is enabled
+def debug_print(*args, **kwargs):
+    if VERBOSE:
+        print("[DEBUG]", *args, **kwargs)
+
+# Function to save settings to JSON file
+def save_settings(settings):
+    with open(SETTINGS_FILE, 'w') as f:
+        json.dump(settings, f, indent=4)
+
+# Function to load settings from JSON file
+def load_settings():
+    default_settings = {
+        "auto_backup": True,
+        "vdf_path": None  # Add a key for the VDF path
+    }
+    
+    # If the settings file doesn't exist, create it with default settings
+    if not os.path.exists(SETTINGS_FILE):
+        debug_print("Settings file not found, creating with default settings")
+        save_settings(default_settings)
+        return default_settings
+    
+    try:
+        with open(SETTINGS_FILE, 'r') as f:
+            user_settings = json.load(f)
+            # Merge with default settings
+            return {**default_settings, **user_settings}
+    except Exception as e:
+        debug_print(f"Error loading settings: {str(e)}")
+        return default_settings
+
+# Load settings to check for a saved path
+settings = load_settings()
+if settings.get("vdf_path"):
+    VDF_PATH = settings["vdf_path"]  # Load path from settings if available
 
 # Function to create an icon from SVG string
 def svg_to_icon(svg_string, size=24, color=None):
@@ -240,26 +222,86 @@ def save_vdf(filepath, data):
     with open(filepath, 'w', encoding='utf-8') as f:
         vdf.dump({'users': data}, f, pretty=True)
 
-# Load settings from JSON file
-def load_settings():
-    default_settings = {
-        "auto_backup": True
-    }
-    if os.path.exists(SETTINGS_FILE):
-        try:
-            with open(SETTINGS_FILE, 'r') as f:
-                user_settings = json.load(f)
-                # Merge with default settings
-                return {**default_settings, **user_settings}
-        except Exception as e:
-            debug_print(f"Error loading settings: {str(e)}")
-            return default_settings
-    return default_settings
-
-# Save settings to JSON file
-def save_settings(settings):
-    with open(SETTINGS_FILE, 'w') as f:
-        json.dump(settings, f, indent=4)
+class PathSelectionWindow(QWidget):
+    def __init__(self, initial_path=None, parent=None):
+        super().__init__(parent)  # Pass the parent to the QWidget
+        self.setWindowTitle("Select Steam Login File")
+        self.setGeometry(100, 100, 500, 150)  # Adjusted window size
+        self.parent_window = parent  # Store the parent reference
+        
+        # Set window flags to make it a dialog
+        self.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.WindowSystemMenuHint)
+        
+        # Main layout
+        layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)  # Add some padding
+        
+        # Title label
+        title_label = QLabel("Please select the 'loginusers.vdf' file, it should be located in:\n"
+                             "(Your Steam installation)/config/loginusers.vdf")
+        layout.addWidget(title_label)
+        
+        # Path selection section
+        path_layout = QHBoxLayout()
+        
+        # Line edit to display the selected path
+        self.path_edit = QLineEdit()
+        self.path_edit.setReadOnly(True)
+        self.path_edit.setPlaceholderText("No file selected")
+        if initial_path:  # Pre-select the initial path if provided
+            self.path_edit.setText(initial_path)
+        path_layout.addWidget(self.path_edit)
+        
+        # Browse button
+        self.browse_button = QPushButton("Browse...")
+        self.browse_button.clicked.connect(self.browse_file)
+        path_layout.addWidget(self.browse_button)
+        
+        layout.addLayout(path_layout)
+        
+        # Confirm button
+        self.confirm_button = QPushButton("Confirm Selection")
+        self.confirm_button.clicked.connect(self.confirm_selection)
+        self.confirm_button.setEnabled(bool(initial_path))  # Enable if initial path is provided
+        layout.addWidget(self.confirm_button)
+        
+        self.setLayout(layout)
+    
+    def browse_file(self):
+        # Open a file dialog to select the loginusers.vdf file
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, 
+            "Select loginusers.vdf", 
+            os.path.join(os.getenv('ProgramFiles(x86)'), "Steam", "config"), 
+            "Steam Login File (loginusers.vdf)"
+        )
+        
+        if file_path:
+            # Validate that the selected file is named 'loginusers.vdf'
+            if os.path.basename(file_path).lower() == "loginusers.vdf":
+                self.path_edit.setText(file_path)
+                self.confirm_button.setEnabled(True)  # Enable confirm button
+            else:
+                QMessageBox.warning(self, "Invalid File", "Please select the 'loginusers.vdf' file.")
+    
+    def confirm_selection(self):
+        global VDF_PATH
+        selected_path = self.path_edit.text()
+        
+        if selected_path and os.path.exists(selected_path):
+            VDF_PATH = selected_path
+            # Save the selected path to settings.json
+            settings = load_settings()
+            settings["vdf_path"] = VDF_PATH
+            save_settings(settings)
+            
+            # Refresh the table in the main window
+            if self.parent_window and hasattr(self.parent_window, 'load_data'):
+                self.parent_window.load_data()  # Call load_data to refresh the table
+            
+            self.close()  # Close the window after confirming
+        else:
+            QMessageBox.warning(self, "Invalid Path", "Please select a valid 'loginusers.vdf' file.")
 
 # Main application class for Steam Account Manager
 class SteamAccountManager(QMainWindow):
@@ -269,8 +311,15 @@ class SteamAccountManager(QMainWindow):
         self.auto_backup = self.settings.get("auto_backup", True)  # Get auto_backup setting
         self.radio_button_group = QButtonGroup(self)  # Create a button group for radio buttons
         self.radio_button_group.setExclusive(True)    # Ensure only one can be selected
-        self.initUI()
-        self.load_data()  # Load data automatically on startup
+        
+        # Initialize the UI
+        self.initUI()  # Ensure UI is initialized first
+        
+        # Check if VDF file exists
+        if not VDF_PATH or not os.path.exists(VDF_PATH):
+            self.show_path_selection()
+        else:
+            self.load_data()
     
     # Initialize the user interface
     def initUI(self):
@@ -333,6 +382,19 @@ class SteamAccountManager(QMainWindow):
         self.fab = FloatingActionButton(self.table_frame)  # Make the FAB a child of the table frame
         self.fab.clicked.connect(self.show_fab_menu)
         
+        # Create second floating action button
+        self.fab2 = FloatingActionButton(self.table_frame)
+        # Get system colors for icon color
+        palette = self.fab2.palette()
+        is_dark = palette.color(palette.ColorRole.Window).lightness() < 128
+        icon_color = "#FFFFFF" if is_dark else "#000000"  # White in dark mode, black in light mode
+        self.fab2.setIcon(svg_to_icon('''
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                <path fill="currentColor" d="M478.8,208.2a36,36,0,1,1-36-36A36,36,0,0,1,478.8,208.2ZM442.6,139a69.42,69.42,0,0,0-69.4,68.7l-43.2,62a48.86,48.86,0,0,0-5.4-.3,51.27,51.27,0,0,0-26.4,7.3L102.4,198a51.8,51.8,0,1,0-50.6,62.9,51.27,51.27,0,0,0,26.4-7.3L274,332.2a51.76,51.76,0,0 0,102.1-5.9l66.5-48.6a69.35,69.35,0,1,0,0-138.7Zm0,22.9a46.45,46.45,0,1,1-46.5,46.5A46.54,46.54,0,0,1,442.6,161.9Zm-390.8,9a38.18,38.18,0,0,1,33.7,20.2l-18.9-7.6v.1a30.21,30.21,0,0,0-22.6,56v.1l16.1,6.4a36.8,36.8,0,0,1-8.2.9,38.05,38.05,0,0,1-.1-76.1ZM324.6,283.1A38.1,38.1,0,1,1,290.9,339c6.3,2.5,12.5,5,18.8,7.6a30.27,30.27,0,1,0,22.5-56.2L316.3,284A46.83,46.83,0,0,1,324.6,283.1Z"/>
+            </svg>
+        ''', 34, icon_color))  # Set icon color based on theme
+        self.fab2.clicked.connect(self.show_path_selection)  # Connect to path selection
+        
         # Add the table frame to the main layout
         main_layout.addWidget(self.table_frame)
         
@@ -370,10 +432,19 @@ class SteamAccountManager(QMainWindow):
     # Position the FAB in the bottom right corner of the table frame
     def position_fab(self):
         if self.table_frame and self.fab:
+            # Position original FAB
             self.fab.move(
                 self.table_frame.width() - self.fab.width() - 16,  # 16px margin from the right
                 self.table_frame.height() - self.fab.height() - 16  # 16px margin from the bottom
             )
+            # Position new FAB to the left of the original one
+            self.fab2.move(
+                self.table_frame.width() - self.fab.width() * 2 - 32,  # 16px margin between FABs
+                self.table_frame.height() - self.fab.height() - 16  # Same vertical position
+            )
+            # Ensure the FABs stay on top of other widgets
+            self.fab.raise_()
+            self.fab2.raise_()
     
     # Reposition the FAB when the window is resized
     def resizeEvent(self, event):
@@ -813,11 +884,24 @@ class SteamAccountManager(QMainWindow):
     
     # Load account data from VDF and JSON files
     def load_data(self):
+        global VDF_PATH  # Declare VDF_PATH as global
         try:
-            if not VDF_PATH:
-                QMessageBox.critical(self, "Error", 
-                    "Steam installation not found. Please make sure Steam is installed.")
-                return
+            # Check if VDF_PATH is set in settings
+            settings = load_settings()
+            VDF_PATH = settings.get("vdf_path")  # Load path from settings if available
+            
+            # If VDF_PATH is not set or the file doesn't exist, check the default path
+            if not VDF_PATH or not os.path.exists(VDF_PATH):
+                DEFAULT_VDF_PATH = os.path.join(os.getenv('ProgramFiles(x86)'), "Steam", "config", "loginusers.vdf")
+                if os.path.exists(DEFAULT_VDF_PATH):
+                    VDF_PATH = DEFAULT_VDF_PATH
+                    # Save the default path to settings.json
+                    settings["vdf_path"] = VDF_PATH
+                    save_settings(settings)
+                else:
+                    # If the default path doesn't exist, show the path selection window
+                    self.show_path_selection()
+                    return
             
             debug_print("Loading VDF data...")
             # First load the VDF file (enabled accounts)
@@ -924,7 +1008,8 @@ class SteamAccountManager(QMainWindow):
             
         except FileNotFoundError as e:
             QMessageBox.critical(self, "Error", 
-                f"Steam installation not found. Please make sure Steam is installed.\n\nDetails: {str(e)}")
+                f"Steam configuration file not found. Please select a valid loginusers.vdf file.\n\nDetails: {str(e)}")
+            self.show_path_selection()  # Reopen the path selection window
         except Exception as e:
             debug_print(f"Error loading data: {str(e)}")
             QMessageBox.critical(self, "Error", f"Failed to load data: {str(e)}")
@@ -1244,6 +1329,27 @@ class SteamAccountManager(QMainWindow):
         except Exception as e:
             debug_print(f"Error updating account names from table: {str(e)}")
             raise
+
+    def show_path_selection(self):
+        debug_print("Attempting to show path selection window")
+        self.path_window = PathSelectionWindow(VDF_PATH, self)  # Pass VDF_PATH as the initial path
+        self.path_window.setGeometry(100, 100, 500, 150)  # Set a fixed size and position
+        debug_print("Path selection window created")
+        self.path_window.show()
+        debug_print("Path selection window shown")
+        self.path_window.destroyed.connect(self.initialize_after_path_selection)
+        debug_print("Connected destroyed signal")
+        # Reposition FABs after the window is shown
+        QTimer.singleShot(0, self.position_fab)
+
+    def initialize_after_path_selection(self):
+        if VDF_PATH and os.path.exists(VDF_PATH):
+            self.initUI()
+            self.load_data()
+        else:
+            QMessageBox.critical(self, "Error", 
+                "Steam configuration file not found. Please select a valid loginusers.vdf file.")
+            self.show_path_selection()  # Reopen the path selection window
 
 # Main entry point
 if __name__ == '__main__':
