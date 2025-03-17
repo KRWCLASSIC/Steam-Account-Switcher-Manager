@@ -11,6 +11,7 @@ python -m nuitka ^
     --onefile ^
     --enable-plugin=pyside6 ^
     --assume-yes-for-downloads ^
+    --windows-console-mode=disable ^
     --remove-output ^
     --output-dir=building_scripts/nuitka ^
     --windows-company-name="KRW CLASSIC" ^
