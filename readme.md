@@ -4,7 +4,9 @@
 
 SASM is a powerful tool designed to enhance the management of your Steam accounts. With the Steam's limitation of displaying only five accounts at a time, SASM allows you to reorder accounts, temporarily hide them, and more.
 
-<img src="https://github.com/user-attachments/assets/0abf826c-cc89-477e-82d3-8ed52dc3b96a" alt="GUI Preview" width="500" />
+<div style="text-align: center;">
+    <img src="https://github.com/user-attachments/assets/0abf826c-cc89-477e-82d3-8ed52dc3b96a" alt="GUI Preview" width="120" />
+</div>
 
 ## Features
 
@@ -38,7 +40,7 @@ SASM is a powerful tool designed to enhance the management of your Steam account
 ## TODO
 
 - Backup system
-- Auto editing so your changes are permament (might break adding new accounts - to remember)
+- Auto editing so your changes are permanent (might break adding new accounts - to remember)
 
 ## Thanks
 
