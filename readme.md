@@ -29,7 +29,7 @@ SASM is a powerful tool designed to enhance the management of your Steam account
 3. Run `sasm.pyw` file
 
 > You can also build this project with Nuitka or PyInstaller if you prefer binaries.
-> Precompiled builds are available in the [releases section](https://github.com/KRWCLASSIC/SteamAccountSwitcherManager/releases).
+> Prebuild binaries are available in the [releases section](https://github.com/KRWCLASSIC/SteamAccountSwitcherManager/releases).
 
 ## Usage
 
