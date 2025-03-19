@@ -1,5 +1,14 @@
-Python 3.10 Linux | Python 3.11 Windows
-Nuitka/PyInstaller required
-VS Build Tools (2022+) required
-WSL2 (Preferably Ubuntu) For Linux builds
-patchelf Package (WSL2) For Nuitka Linux Build
+Windows:
+- Python 3.10 - 3.11.x
+- requirements.txt (pip)
+- Nuitka/PyInstaller (pip)
+- VS Build Tools (2022+)
+
+Linux:
+- Python 3.10
+- requirements.txt (pip)
+- Nuitka/PyInstaller (pip)
+
+Build All:
+- WSL2 (Preferably Ubuntu)
+- patchelf installed in WSL (apt)

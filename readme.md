@@ -19,15 +19,15 @@ SASM is a powerful tool designed to enhance the management of your Steam account
 
 ## Prerequisites (Non-build)
 
-- Python 3.11.x (or newer)
-- Windows 10 or higher
+- Windows 10 or higher | Linux distro like Ubuntu 22 or higher
+- Python 3.10 or higher (3.12+ Not Recommended)
 
 ## Installation (Non-build)
 
 1. Download `sasm.pyw` and `requirements.txt` files.
 2. Install the required packages by running:
 
-   ```cmd
+   ```bash
    pip install -r requirements.txt
    ```
 
@@ -35,6 +35,12 @@ SASM is a powerful tool designed to enhance the management of your Steam account
 
 > You can also build this project with Nuitka or PyInstaller if you prefer binaries.
 > Prebuild binaries are available in the [releases section](https://github.com/KRWCLASSIC/SteamAccountSwitcherManager/releases).
+
+## Building
+
+All notes about building are available [here](https://github.com/KRWCLASSIC/Steam-Account-Switcher-Manager/blob/main/building_scripts/building_note.txt). In the same folder you can find build scripts for different building tools and operating systems.
+
+> `build_all.bat` is a script that builds all versions in a queue under Windows. It requires WSL to be installed and configured beforehand, which includes having Python packages installed on both systems. For more details, refer to the building note mentioned above.
 
 ## Usage
 
