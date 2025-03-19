@@ -1,4 +1,4 @@
-# Steam Account Switcher Manager `1.2`
+# Steam Account Switcher Manager `1.3`
 
 ![Static Badge](https://img.shields.io/badge/OS-Windows_Only-blue)
 
@@ -43,7 +43,6 @@ SASM is a powerful tool designed to enhance the management of your Steam account
 
 ## TODO
 
-- Backup manager
 - Auto editing so your changes are permanent (might break adding new accounts - to remember)
 
 ## Thanks

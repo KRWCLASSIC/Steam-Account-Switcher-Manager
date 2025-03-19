@@ -10,9 +10,10 @@ import time
 import vdf
 import sys
 import os
+import shutil
 
 # Application version
-VERSION = "1.2"
+VERSION = "1.3"
 
 # Enable verbose logging if -v or --verbose flag is present
 VERBOSE = "-v" in sys.argv or "--verbose" in sys.argv
@@ -414,9 +415,102 @@ class SteamAccountManager(QMainWindow):
         manual_backup_action.triggered.connect(self.create_manual_backup)
         menu.addAction(manual_backup_action)
         
+        # Create a submenu for Restore Backup
+        restore_backup_menu = QMenu("Restore Backup", self)
+        backup_files = os.listdir(BACKUP_PATH)  # List files in the backup directory
+        
+        if not backup_files:
+            restore_backup_action = QAction("No backups available", self)
+            restore_backup_action.setEnabled(False)  # Disable if no backups
+            restore_backup_menu.addAction(restore_backup_action)
+        else:
+            for backup_file in backup_files:
+                # Debug print to show the current backup file being processed
+                debug_print(f"Processing backup file: {backup_file}")
+                
+                # Format the filename
+                if "_manual_" in backup_file:
+                    backup_type = "Manual"
+                else:
+                    backup_type = "Automatic"
+                
+                # Extract date and time from the filename
+                parts = backup_file.split("_")
+                if len(parts) < 3:
+                    debug_print(f"Filename format is incorrect: {backup_file}")
+                    continue  # Skip this file if the format is not as expected
+                
+                # The timestamp is the last part before the file extension
+                timestamp = parts[-1].split(".")[0]  # Get the last part and remove the file extension
+                debug_print(f"Extracted timestamp: {timestamp}")
+                
+                # Format: YYYYMMDD_HHMMSS
+                if len(timestamp) != 6:  # Check if the timestamp is in the expected format
+                    debug_print(f"Timestamp is not in the expected format: {timestamp}")
+                    continue
+                
+                date_part = parts[-2]  # YYYYMMDD
+                time_part = timestamp   # HHMMSS
+                
+                # Debug prints to check the extracted date and time parts
+                debug_print(f"Date part: {date_part}, Time part: {time_part}")
+                
+                # Format date
+                formatted_date = f"{date_part[:4]}-{date_part[4:6]}-{date_part[6:8]}"
+                # Format time
+                formatted_time = f"{time_part[:2]}:{time_part[2:4]}:{time_part[4:]}"  # HH:MM:SS
+                
+                display_name = f"loginusers.vdf | {backup_type} | {formatted_date} {formatted_time}"
+                
+                action = QAction(display_name, self)
+                action.triggered.connect(lambda checked, file=backup_file: self.restore_backup(file))
+                restore_backup_menu.addAction(action)
+        
+        menu.addMenu(restore_backup_menu)  # Add the submenu to the main menu
+        
         # Position the menu above the FAB
         pos = self.fab.mapToGlobal(QPoint(0, -menu.sizeHint().height()))
         menu.exec(pos)
+
+    # New method to handle restoring a backup
+    def restore_backup(self, backup_file):
+        backup_filepath = os.path.join(BACKUP_PATH, backup_file)
+        if not os.path.exists(backup_filepath):
+            QMessageBox.critical(self, "Error", "Backup file not found.")
+            return
+        
+        # Confirm the restore action
+        reply = QMessageBox.question(self, "Restore Backup", 
+            f"Are you sure you want to restore the backup from '{backup_file}'?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        
+        if reply == QMessageBox.Yes:
+            try:
+                # Save currently enabled accounts to disabled accounts if they are not in the backup
+                current_enabled_accounts = set(self.data.keys())
+                backup_accounts = set(parse_vdf(backup_filepath).keys())  # Get accounts from the backup
+                
+                # Identify accounts to disable
+                accounts_to_disable = current_enabled_accounts - backup_accounts
+                
+                # Save these accounts to the disabled accounts JSON file
+                for steam_id in accounts_to_disable:
+                    if steam_id in self.data:
+                        self.disabled_accounts[steam_id] = self.data[steam_id]
+                        del self.data[steam_id]  # Remove from enabled accounts
+                        debug_print(f"Moved {steam_id} to disabled accounts before restoring backup.")
+                
+                # Now restore the backup
+                shutil.copy2(backup_filepath, VDF_PATH)
+                QMessageBox.information(self, "Success", "Backup restored successfully.")
+                
+                # Save the updated disabled accounts
+                save_disabled_accounts(self.disabled_accounts)
+                
+                # Auto-refresh the data after restoring
+                self.load_data()  # Refresh the table to reflect the restored data
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to restore backup: {str(e)}")
     
     # Toggle auto backup setting
     def toggle_auto_backup(self, state):
@@ -833,6 +927,10 @@ class SteamAccountManager(QMainWindow):
     def load_data(self):
         global VDF_PATH  # Declare VDF_PATH as global
         try:
+            # Clear the table before loading new data
+            self.table.clearContents()
+            self.table.setRowCount(0)  # Also reset the row count
+            
             # Check if VDF_PATH is set in settings
             settings = load_settings()
             VDF_PATH = settings.get("vdf_path")  # Load path from settings if available
@@ -862,6 +960,13 @@ class SteamAccountManager(QMainWindow):
                     debug_print("Disabled accounts is not a dictionary, resetting to empty dict")
                     self.disabled_accounts = {}
                 debug_print(f"Loaded {len(self.disabled_accounts)} disabled accounts: {self.disabled_accounts}")
+                
+                # Remove duplicates from disabled accounts that are also in enabled accounts
+                for steam_id in list(self.disabled_accounts.keys()):
+                    if steam_id in self.data:
+                        debug_print(f"Removing {steam_id} from disabled accounts as it is enabled in VDF")
+                        del self.disabled_accounts[steam_id]
+                
             except Exception as e:
                 debug_print(f"Error loading disabled accounts, resetting: {str(e)}")
                 self.disabled_accounts = {}
@@ -1100,7 +1205,6 @@ class SteamAccountManager(QMainWindow):
             
             # Save the ordered data to VDF file
             debug_print(f"Saving {len(ordered_data)} accounts to VDF file")
-            self.data = {k: v for k, v in self.data.items() if k not in self.disabled_accounts}
             save_vdf(VDF_PATH, ordered_data)
             
             # Save disabled accounts to JSON file
