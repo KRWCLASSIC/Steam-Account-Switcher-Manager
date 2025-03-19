@@ -2,7 +2,7 @@ Windows:
 - Python 3.10 - 3.11.x
 - requirements.txt (pip)
 - Nuitka/PyInstaller (pip)
-- VS Build Tools (2022+)
+- VS Build Tools (2022+) for Nuitka
 
 Linux:
 - Python 3.10
