@@ -2,6 +2,7 @@
 
 ![Static Badge](https://img.shields.io/badge/OS-Windows-blue)
 ![Static Badge](https://img.shields.io/badge/OS-Linux-orange)
+
 <sub>Linux support is limited! Currently in a working state.</sub>
 
 SASM is a powerful tool designed to enhance the management of your Steam accounts. With the Steam's limitation of displaying only five accounts at a time, SASM allows you to reorder accounts, temporarily hide them, and more.
