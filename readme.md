@@ -1,6 +1,9 @@
-# Steam Account Switcher Manager `1.3`
+# Steam Account Switcher Manager `1.3.1`
 
-![Static Badge](https://img.shields.io/badge/OS-Windows_Only-blue)
+![Static Badge](https://img.shields.io/badge/OS-Windows-blue)
+![Static Badge](https://img.shields.io/badge/OS-Linux-orange)
+
+<small>Linux support is limited! Currently in a working state.</small>
 
 SASM is a powerful tool designed to enhance the management of your Steam accounts. With the Steam's limitation of displaying only five accounts at a time, SASM allows you to reorder accounts, temporarily hide them, and more.
 

@@ -1,2 +1,1 @@
-building_scripts/pyinstaller
-building_scripts/nuitka
+building_scripts/builds/*

@@ -13,7 +13,7 @@ import os
 import shutil
 
 # Application version
-VERSION = "1.3"
+VERSION = "1.3.1"
 
 # Enable verbose logging if -v or --verbose flag is present
 VERBOSE = "-v" in sys.argv or "--verbose" in sys.argv
@@ -21,12 +21,13 @@ VERBOSE = "-v" in sys.argv or "--verbose" in sys.argv
 # Constants for file paths and keys
 if os.name == 'nt':
     APPDATA_PATH = os.path.join(os.getenv('APPDATA'), "KRWCLASSIC", "steamaccountswitchermanager")
+    DEFAULT_VDF_PATH = os.path.join(os.getenv('ProgramFiles(x86)'), "Steam", "config", "loginusers.vdf")
 else:
     APPDATA_PATH = os.path.join(os.path.expanduser('~'), ".KRWCLASSIC", "steamaccountswitchermanager")
+    DEFAULT_VDF_PATH = os.path.join(os.path.expanduser("~/.steam/root/config/loginusers.vdf"))
 DISABLED_ACCOUNTS_FILE = os.path.join(APPDATA_PATH, "disabled_accounts.json")
 SETTINGS_FILE = os.path.join(APPDATA_PATH, "settings.json")
 BACKUP_PATH = os.path.join(APPDATA_PATH, "backups")
-DEFAULT_VDF_PATH = os.path.join(os.getenv('ProgramFiles(x86)'), "Steam", "config", "loginusers.vdf")
 
 # Initialize VDF_PATH
 VDF_PATH = DEFAULT_VDF_PATH if os.path.exists(DEFAULT_VDF_PATH) else None
@@ -230,7 +231,7 @@ class PathSelectionWindow(QWidget):
         file_path, _ = QFileDialog.getOpenFileName(
             self, 
             "Select loginusers.vdf", 
-            os.path.join(os.getenv('ProgramFiles(x86)'), "Steam", "config"), 
+            os.path.dirname(DEFAULT_VDF_PATH),  # Use the defined path variable
             "Steam Login File (loginusers.vdf)"
         )
         
@@ -940,7 +941,6 @@ class SteamAccountManager(QMainWindow):
             
             # If VDF_PATH is not set or the file doesn't exist, check the default path
             if not VDF_PATH or not os.path.exists(VDF_PATH):
-                DEFAULT_VDF_PATH = os.path.join(os.getenv('ProgramFiles(x86)'), "Steam", "config", "loginusers.vdf")
                 if os.path.exists(DEFAULT_VDF_PATH):
                     VDF_PATH = DEFAULT_VDF_PATH
                     # Save the default path to settings.json

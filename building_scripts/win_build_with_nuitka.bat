@@ -13,10 +13,7 @@ python -m nuitka ^
     --assume-yes-for-downloads ^
     --windows-console-mode=disable ^
     --remove-output ^
-    --output-dir=building_scripts/nuitka ^
-    --windows-company-name="KRW CLASSIC" ^
-    --windows-product-name="SASM" ^
-    --windows-product-version="1.3" ^
+    --output-dir=building_scripts/builds/nuitka-win ^
     sasm.pyw
 
-cd building_scripts/nuitka
+cd building_scripts/builds/nuitka-win

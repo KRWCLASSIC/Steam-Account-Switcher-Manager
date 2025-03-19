@@ -1,3 +1,5 @@
-Python 3.11.x Recommended
+Python 3.10 Linux | Python 3.11 Windows
 Nuitka/PyInstaller required
 VS Build Tools (2022+) required
+WSL2 (Preferably Ubuntu) For Linux builds
+patchelf Package (WSL2) For Nuitka Linux Build
