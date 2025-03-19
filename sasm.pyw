@@ -19,7 +19,10 @@ VERSION = "1.3"
 VERBOSE = "-v" in sys.argv or "--verbose" in sys.argv
 
 # Constants for file paths and keys
-APPDATA_PATH = os.path.join(os.getenv('APPDATA'), "KRWCLASSIC", "steamaccountswitchermanager")
+if os.name == 'nt':
+    APPDATA_PATH = os.path.join(os.getenv('APPDATA'), "KRWCLASSIC", "steamaccountswitchermanager")
+else:
+    APPDATA_PATH = os.path.join(os.path.expanduser('~'), ".KRWCLASSIC", "steamaccountswitchermanager")
 DISABLED_ACCOUNTS_FILE = os.path.join(APPDATA_PATH, "disabled_accounts.json")
 SETTINGS_FILE = os.path.join(APPDATA_PATH, "settings.json")
 BACKUP_PATH = os.path.join(APPDATA_PATH, "backups")
