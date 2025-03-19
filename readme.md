@@ -4,13 +4,15 @@
 
 SASM is a powerful tool designed to enhance the management of your Steam accounts. With the Steam's limitation of displaying only five accounts at a time, SASM allows you to reorder accounts, temporarily hide them, and more.
 
-<img src="https://github.com/user-attachments/assets/0abf826c-cc89-477e-82d3-8ed52dc3b96a" alt="GUI Preview" width="500" />
-
 ## Features
 
 - **Account Management**: Easily reorder your Steam accounts to suit your preferences.
 - **Account Disabling**: Disable accounts for privacy or organization, with hidden accounts stored in `%appdata%/KRWCLASSIC/steamaccountswitchermanager`.
 - **Account Backup**: Automatically or manually create backups before making any changes.
+
+## Preview
+
+<img src="https://github.com/user-attachments/assets/cc8e6369-d8c9-4edf-a713-bae0bb3ebc0c" alt="GUI Preview" width="500" />
 
 ## Prerequisites (Non-build)
 
