@@ -1,16 +1,16 @@
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTableWidget,
                              QTableWidgetItem, QPushButton, QCheckBox,
                              QRadioButton, QHeaderView, QMessageBox,
-                             QButtonGroup, QMenu, QFrame, QLabel, QLineEdit, QFileDialog)
+                             QButtonGroup, QMenu, QFrame, QLabel, QLineEdit, QFileDialog, QDialog)
 from PySide6.QtGui import QAction, QPainter, QPixmap, QIcon
 from PySide6.QtCore import Qt, QSize, QPoint, QTimer
 from PySide6.QtSvg import QSvgRenderer
+import shutil
 import json
 import time
 import vdf
 import sys
 import os
-import shutil
 
 # Application version
 VERSION = "1.3.1"
@@ -262,6 +262,39 @@ class PathSelectionWindow(QWidget):
         else:
             QMessageBox.warning(self, "Invalid Path", "Please select a valid 'loginusers.vdf' file.")
 
+# Custom dialog for installation prompt
+class InstallPromptDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Install to AppData")
+        
+        # Layout for the dialog
+        layout = QVBoxLayout()
+        
+        # Message label
+        message_label = QLabel("Do you want to install SASM to a safe location (AppData)?")
+        layout.addWidget(message_label)
+        
+        # Checkbox for "Don't ask again"
+        self.dont_ask_checkbox = QCheckBox("Don't ask again")
+        layout.addWidget(self.dont_ask_checkbox)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        yes_button = QPushButton("Yes")
+        yes_button.clicked.connect(self.accept)
+        button_layout.addWidget(yes_button)
+        
+        no_button = QPushButton("No")
+        no_button.clicked.connect(self.reject)
+        button_layout.addWidget(no_button)
+        
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+
+    def should_not_ask_again(self):
+        return self.dont_ask_checkbox.isChecked()
+
 # Main application class for Steam Account Manager
 class SteamAccountManager(QMainWindow):
     def __init__(self):
@@ -278,16 +311,17 @@ class SteamAccountManager(QMainWindow):
         self.setWindowTitle(f"Steam Account Switcher Manager v{VERSION}")
         
         # Set default window size
-        default_width = 915
+        default_width = 865
         default_height = 450
         
         # Set minimum window size (default size - 50px on both sides)
-        min_width = default_width - 50
-        min_height = default_height - 50
+        min_width = default_width
+        min_height = default_height - 150
         
         # Set window size and minimum size
         self.setGeometry(100, 100, default_width, default_height)
         self.setMinimumSize(min_width, min_height)
+        self.setMaximumWidth(default_width)  # Set maximum width to 865
         
         # Create central widget and main layout
         central_widget = QWidget()
@@ -1407,7 +1441,6 @@ class SteamAccountManager(QMainWindow):
 
 # Main entry point
 if __name__ == '__main__':
-    
     app = QApplication(sys.argv)
     window = SteamAccountManager()
     window.show()
