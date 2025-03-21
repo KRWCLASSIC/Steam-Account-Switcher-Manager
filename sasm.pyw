@@ -13,7 +13,7 @@ import sys
 import os
 
 # Application version
-VERSION = "1.3.1"
+VERSION = "1.3.2"
 
 # Enable verbose logging if -v or --verbose flag is present
 VERBOSE = "-v" in sys.argv or "--verbose" in sys.argv
@@ -23,7 +23,7 @@ if os.name == 'nt':
     APPDATA_PATH = os.path.join(os.getenv('APPDATA'), "KRWCLASSIC", "steamaccountswitchermanager")
     DEFAULT_VDF_PATH = os.path.join(os.getenv('ProgramFiles(x86)'), "Steam", "config", "loginusers.vdf")
 else:
-    APPDATA_PATH = os.path.join(os.path.expanduser('~'), ".KRWCLASSIC", "steamaccountswitchermanager")
+    APPDATA_PATH = os.path.join(os.path.expanduser('~'), ".config", "KRWCLASSIC", "steamaccountswitchermanager")
     DEFAULT_VDF_PATH = os.path.join(os.path.expanduser("~/.steam/root/config/loginusers.vdf"))
 DISABLED_ACCOUNTS_FILE = os.path.join(APPDATA_PATH, "disabled_accounts.json")
 SETTINGS_FILE = os.path.join(APPDATA_PATH, "settings.json")
@@ -164,8 +164,8 @@ class FloatingActionButton(QPushButton):
         # Set the cursor to a pointing hand
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
-# Parse Steam's VDF configuration file
-def parse_vdf(filepath):
+# Load Steam's VDF configuration file
+def load_vdf(filepath):
     if not filepath or not os.path.exists(filepath):
         raise FileNotFoundError("Steam installation not found. Please make sure Steam is installed.")
     
@@ -526,7 +526,7 @@ class SteamAccountManager(QMainWindow):
             try:
                 # Save currently enabled accounts to disabled accounts if they are not in the backup
                 current_enabled_accounts = set(self.data.keys())
-                backup_accounts = set(parse_vdf(backup_filepath).keys())  # Get accounts from the backup
+                backup_accounts = set(load_vdf(backup_filepath).keys())  # Get accounts from the backup
                 
                 # Identify accounts to disable
                 accounts_to_disable = current_enabled_accounts - backup_accounts
@@ -987,7 +987,7 @@ class SteamAccountManager(QMainWindow):
             
             debug_print("Loading VDF data...")
             # First load the VDF file (enabled accounts)
-            self.data = parse_vdf(VDF_PATH)
+            self.data = load_vdf(VDF_PATH)
             debug_print(f"Successfully parsed VDF data, found {len(self.data)} accounts")
             
             # Then load disabled accounts
