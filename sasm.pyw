@@ -262,39 +262,6 @@ class PathSelectionWindow(QWidget):
         else:
             QMessageBox.warning(self, "Invalid Path", "Please select a valid 'loginusers.vdf' file.")
 
-# Custom dialog for installation prompt
-class InstallPromptDialog(QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Install to AppData")
-        
-        # Layout for the dialog
-        layout = QVBoxLayout()
-        
-        # Message label
-        message_label = QLabel("Do you want to install SASM to a safe location (AppData)?")
-        layout.addWidget(message_label)
-        
-        # Checkbox for "Don't ask again"
-        self.dont_ask_checkbox = QCheckBox("Don't ask again")
-        layout.addWidget(self.dont_ask_checkbox)
-        
-        # Buttons
-        button_layout = QHBoxLayout()
-        yes_button = QPushButton("Yes")
-        yes_button.clicked.connect(self.accept)
-        button_layout.addWidget(yes_button)
-        
-        no_button = QPushButton("No")
-        no_button.clicked.connect(self.reject)
-        button_layout.addWidget(no_button)
-        
-        layout.addLayout(button_layout)
-        self.setLayout(layout)
-
-    def should_not_ask_again(self):
-        return self.dont_ask_checkbox.isChecked()
-
 # Main application class for Steam Account Manager
 class SteamAccountManager(QMainWindow):
     def __init__(self):
